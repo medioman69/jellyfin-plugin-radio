@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Radio Config</title>
+</head>
+<body>
+    <div id="radioConfig" class="pluginConfigurationPage" data-plugin-id="8d6f26e8-7e0a-4b0f-8f62-0a7d3cbb9999">
+        <h2>Configurazione Radio</h2>
+        <p>Aggiungi qui le tue stazioni radio streaming.</p>
+        <table id="stationsTable" class="detailTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>URL Stream</th>
+                    <th>Logo (opzionale)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button type="button" id="addStationBtn" class="raised button">+ Aggiungi Stazione</button>
+        <br /><br />
+        <button type="button" is="emby-button" class="raised button-submit block" id="saveConfigBtn">Salva</button>
+    </div>
+    <script type="text/javascript">
+        var pluginId = "8d6f26e8-7e0a-4b0f-8f62-0a7d3cbb9999";
+        function loadConfig(page, config) {
+            var tbody = page.querySelector("#stationsTable tbody");
+            tbody.innerHTML = "";
+            (config.Stations || []).forEach(function(station, index) {
+                addRow(tbody, station.Name, station.StreamUrl, station.LogoUrl);
+            });
+        }
+        function addRow(tbody, name, url, logo) {
+            var row = document.createElement("tr");
+            row.innerHTML = `
+                <td><input type="text" class="txtName" value="${name || ''}" /></td>
+                <td><input type="text" class="txtUrl" value="${url || ''}" /></td>
+                <td><input type="text" class="txtLogo" value="${logo || ''}" /></td>
+                <td><button type="button" class="btnRemove">Rimuovi</button></td>
+            `;
+            row.querySelector(".btnRemove").addEventListener("click", function() {
+                row.remove();
+            });
+            tbody.appendChild(row);
+        }
+        document.querySelector("#addStationBtn").addEventListener("click", function() {
+            var tbody = document.querySelector("#stationsTable tbody");
+            addRow(tbody, "", "", "");
+        });
+        document.querySelector("#saveConfigBtn").addEventListener("click", function() {
+            var page = document.querySelector("#radioConfig");
+            var tbody = page.querySelector("#stationsTable tbody");
+            var stations = [];
+            tbody.querySelectorAll("tr").forEach(function(row) {
+                stations.push({
+                    Name: row.querySelector(".txtName").value,
+                    StreamUrl: row.querySelector(".txtUrl").value,
+                    LogoUrl: row.querySelector(".txtLogo").value
+                });
+            });
+            ApiClient.getPluginConfiguration(pluginId).then(function(config) {
+                config.Stations = stations;
+                ApiClient.updatePluginConfiguration(pluginId, config).then(function() {
+                    Dashboard.processPluginConfigurationUpdateResult();
+                });
+            });
+        });
+        // Caricamento configurazione
+        document.addEventListener("viewshow", function(e) {
+            var page = e.target;
+            if (page.id === "radioConfig") {
+                ApiClient.getPluginConfiguration(pluginId).then(function(config) {
+                    loadConfig(page, config);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
